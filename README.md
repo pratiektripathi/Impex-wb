@@ -18,11 +18,11 @@ This project generates and prints weigh bridge tickets as PDF files using Python
 
 ## Screenshots
 ### GUI
-![login](screenshots/0.png)
-![settings](screenshots/1.png)
-![custom report](screenshots/2.png)
-![First weight](screenshots/3.png)
-![custom report](screenshots/2.png)
+![login](screenshots/0.jpg)
+![settings](screenshots/1.jpg)
+![custom report](screenshots/2.jpg)
+![First weight](screenshots/3.jpg)
+![custom report](screenshots/2.jpg)
 
 ### Example PDF Ticket
-![Example PDF Ticket](screenshots/4.png)
+![Example PDF Ticket](screenshots/4.jpg)
