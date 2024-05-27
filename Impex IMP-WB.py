@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 import datetime
 import multiprocessing
 import queue as q
@@ -17,6 +18,7 @@ import serial
 from PIL import Image, ImageTk
 import db
 from tkcalendar import DateEntry
+from picHandler import PicHandler
 import report2
 
 import zebrapl
@@ -56,7 +58,8 @@ except:
           0,
           0,
            "res/nocam.jpg",
-            "res/nocam.jpg"]
+            "res/nocam.jpg",
+            0]
 
 CN=xcom[1]
 A_1=xcom[2]
@@ -75,6 +78,7 @@ rshift=int(xcom[13])
 camEN=int(xcom[14])
 IPcam1=xcom[15]
 IPcam2=xcom[16]
+picEN=xcom[17]
 
 
 
@@ -1032,6 +1036,13 @@ class PageOne(tk.Frame):
         GrossWeight=self.field_8.get()
         TareWeight=self.field_9.get()
         Final=self.field_7.get()
+        pic_handler = PicHandler()
+        url1 = IPcam1
+        filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
+        url2 = IPcam2
+        filename2 = f"camera/back/{self.field_1.get()}_1.jpg"
+
+
 
         if self.field_7.get()=="T" :
             GrossWeightDate=""
@@ -1050,6 +1061,8 @@ class PageOne(tk.Frame):
 
         try:
             db.SaveWbData(savedata)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -1062,7 +1075,7 @@ class PageOne(tk.Frame):
             tk.messagebox.showerror("Error Save","DATABASE ERROR please try again.")
 
 
-
+        
         self.dialog.destroy()
         self.controller.frames[StartPage].refresh()
         self.close()
@@ -1500,6 +1513,11 @@ class PageTwo(tk.Frame):
         oldTWD=pd[10]
         oldTWT=pd[11]
         GT=pd[12]
+        pic_handler = PicHandler()
+        url1 = IPcam1
+        filename1 = f"camera/front/{self.field_1.get()}_2.jpg"
+        url2 = IPcam2
+        filename2 = f"camera/back/{self.field_1.get()}_2.jpg"
 
         if len(self.field_1.get())!=0:
             VehicleNo=self.field_2.get()
@@ -1544,6 +1562,9 @@ class PageTwo(tk.Frame):
                       GrossWeightTime,TareWeightDate,TareWeightTime,Final,NetWeight,NetWeightDate,NetWeightTime,pd[0]]
 
             try:
+                
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
                 db.UpdateWbData(savedata)
                 tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
                 if pp=="print":
@@ -1926,6 +1947,11 @@ class PageFive(tk.Frame):
         NetWeight=self.field_10.get()
         NetWeightDate=self.field_01.get()
         NetWeightTime=self.field_02.get()
+        pic_handler = PicHandler()
+        url1 = IPcam1
+        filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
+        url2 = IPcam2
+        filename2 = f"camera/back/{self.field_1.get()}_1.jpg"
 
 
 
@@ -1935,7 +1961,10 @@ class PageFive(tk.Frame):
 
 
         try:
+
             db.SaveWbData(savedata)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -2314,6 +2343,12 @@ class PageManual(tk.Frame):
         NetWeight=self.field_10.get()
         NetWeightDate=self.field_01.get()
         NetWeightTime=self.field_02.get()
+        pic_handler = PicHandler()
+        url1 = IPcam1
+        filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
+        url2 = IPcam2
+        filename2 = f"camera/back/{self.field_1.get()}_1.jpg"
+
 
 
 
@@ -2324,6 +2359,10 @@ class PageManual(tk.Frame):
 
         try:
             db.SaveWbData(savedata)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
+            
+
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -3037,7 +3076,9 @@ class MultiTabWindow(tk.Toplevel):
         self.camera_enabled = tk.BooleanVar()
         camera_checkbox = ttk.Checkbutton(camera_frame, text="Enable Cameras", variable=self.camera_enabled)
         camera_checkbox.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-
+        self.pic_enabled = tk.BooleanVar()
+        pic_checkbox = ttk.Checkbutton(camera_frame, text="Enable pics", variable=self.pic_enabled)
+        pic_checkbox.grid(row=0, column=1, padx=10, pady=5, sticky="w")
         
 
         # Camera details label frame
@@ -3114,8 +3155,10 @@ class MultiTabWindow(tk.Toplevel):
         camEN=self.camera_enabled.get()
         IPcam1=self.fieldcam1.get()
         IPcam2=self.fieldcam2.get()
+        picEN=self.pic_enabled.get()
 
-        mydata=[CName,Add1,Add2,PType,SWPrint,NCopyF1,NCopyF2,DPrint,CPort,BRate,EString,WDigits,RShift,camEN,IPcam1,IPcam2]
+        mydata=[CName,Add1,Add2,PType,SWPrint,NCopyF1,NCopyF2,DPrint,CPort,BRate,EString,WDigits,RShift,camEN,IPcam1,IPcam2,picEN]
+        db.Update_Seting(mydata)
         try:
             db.Update_Seting(mydata)
             tk.messagebox.showinfo("Done","Saved Successfully !")
@@ -3140,6 +3183,7 @@ class MultiTabWindow(tk.Toplevel):
         self.camera_enabled.set(camEN)
         self.fieldcam1.set(IPcam1)
         self.fieldcam2.set(IPcam2)
+        self.pic_enabled.set(picEN)
 
 
 

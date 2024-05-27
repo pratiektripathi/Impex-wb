@@ -1,10 +1,10 @@
 import datetime
-
+import os
 import win32api
 import win32print
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle, Paragraph, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY,TA_LEFT, TA_RIGHT
@@ -278,6 +278,44 @@ def print_ticket(data,stype,final):
     content.append(net_weight_table)
 
     content.append(Spacer(1, 0.2 * inch))
+
+ # Add images to the document
+    images = [f"camera/front/{ticket_no}_1.jpg", f"camera/back/{ticket_no}_1.jpg", f"camera/front/{ticket_no}_2.jpg", f"camera/back/{ticket_no}_2.jpg"]  # Replace with your image paths
+    image_table_data = []
+    for image in images:
+        if os.path.exists(image):
+            img = Image(image)
+            img.drawWidth = 2.25 * inch
+            img.drawHeight = 2.25 * inch
+            image_table_data.append([img])
+        else:
+            img = Image("res/blank.jpg")
+            img.drawWidth = 2.25 * inch
+            img.drawHeight = 2.25 * inch
+            image_table_data.append([img])
+
+    image_table = Table(
+        [image_table_data[:2], image_table_data[2:]],
+        colWidths=[2.5 * inch, 2.5 * inch],
+        rowHeights=[2.5 * inch, 2.5 * inch]
+    )
+    image_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black)
+            ]
+        )
+    )
+
+    content.append(image_table)
+
+
+
+
+
+
 
     if SWP=="Enable":
         doc.build(content + [Spacer(1,0.3 * inch)] + content)

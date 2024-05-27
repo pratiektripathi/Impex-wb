@@ -34,8 +34,7 @@ def getsecond(id):
 
 
 def SaveWbData(data):
-
-    
+ 
     con=lite.connect("wb.db")
     cur=con.cursor()
     cur.execute('''
@@ -138,7 +137,8 @@ def Update_Seting(data):
 	                                RShift = ?,
                                     camEN = ?,
                                     IPcam1 = ?,
-                                    IPcam2 = ?
+                                    IPcam2 = ?,
+                                    picEN = ?
 	                                WHERE id = '1'""",data)
     con.commit()
     con.close()
