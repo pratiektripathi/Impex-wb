@@ -19,7 +19,7 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 OutputBaseFilename=impexWB
-SetupIconFile=C:\Users\user\Desktop\aditya\ADI0.2\myicon.ico
+SetupIconFile=D:\Impex-wb\output\Impex IMP-WB\myicon.ico
 Password=jaishreeram
 Compression=lzma
 SolidCompression=yes
@@ -32,8 +32,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\user\Desktop\aditya\ADI0.2\venv\Scripts\output\Impex IMP-WB\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\user\Desktop\aditya\ADI0.2\venv\Scripts\output\Impex IMP-WB\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\Impex-wb\output\Impex IMP-WB\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\Impex-wb\output\Impex IMP-WB\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

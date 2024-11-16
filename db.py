@@ -108,6 +108,7 @@ def fetch_data():
 
 
 
+
 def GetAll():
     con=lite.connect("wb.db")
     cur=con.cursor()

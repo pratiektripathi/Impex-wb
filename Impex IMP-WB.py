@@ -508,6 +508,8 @@ class CamPage(tk.Toplevel):
 
 
 
+
+
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent,bg="#FFF5EE")
@@ -2440,6 +2442,7 @@ class Report(tk.Toplevel):
         tk.Toplevel.__init__(self, parent,**kwargs,bg="#ADD8E0")
 
 
+
         self.geometry(str(self.winfo_screenwidth())+"x"+str(self.winfo_screenheight()))
         self.state('zoomed')
         self.iconbitmap('myicon.ico')
@@ -2871,11 +2874,10 @@ class Report(tk.Toplevel):
 
 
 
+
     def print_pdf(self):
         filename = "report.pdf"
-
-        # Open the PDF file using the default PDF viewer
-        subprocess.run([filename], shell=True)
+        subprocess.run(["start",filename], shell=True)
 
 class MultiTabWindow(tk.Toplevel):
     def __init__(self, parent, **kwargs):
