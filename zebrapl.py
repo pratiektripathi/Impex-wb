@@ -35,6 +35,7 @@ SWP=xcom[5]
 NCPF1=xcom[6]
 NCPF2=xcom[7]
 DPrint=xcom[8]
+picEN=int(xcom[21])
 
 
 def get_available_printers():
@@ -279,37 +280,39 @@ def print_ticket(data,stype,final):
 
     content.append(Spacer(1, 0.2 * inch))
 
- # Add images to the document
-    images = [f"camera/front/{ticket_no}_1.jpg", f"camera/back/{ticket_no}_1.jpg", f"camera/front/{ticket_no}_2.jpg", f"camera/back/{ticket_no}_2.jpg"]  # Replace with your image paths
-    image_table_data = []
-    for image in images:
-        if os.path.exists(image):
-            img = Image(image)
-            img.drawWidth = 2.25 * inch
-            img.drawHeight = 2.25 * inch
-            image_table_data.append([img])
-        else:
-            img = Image("res/blank.jpg")
-            img.drawWidth = 2.25 * inch
-            img.drawHeight = 2.25 * inch
-            image_table_data.append([img])
 
-    image_table = Table(
-        [image_table_data[:2], image_table_data[2:]],
-        colWidths=[2.5 * inch, 2.5 * inch],
-        rowHeights=[2.5 * inch, 2.5 * inch]
-    )
-    image_table.setStyle(
-        TableStyle(
-            [
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.black)
-            ]
+    if picEN==True:
+    # Add images to the document
+        images = [f"camera/front/{ticket_no}_1.jpg", f"camera/back/{ticket_no}_1.jpg", f"camera/front/{ticket_no}_2.jpg", f"camera/back/{ticket_no}_2.jpg"]  # Replace with your image paths
+        image_table_data = []
+        for image in images:
+            if os.path.exists(image):
+                img = Image(image)
+                img.drawWidth = 2.25 * inch
+                img.drawHeight = 2.25 * inch
+                image_table_data.append([img])
+            else:
+                img = Image("res/blank.jpg")
+                img.drawWidth = 2.25 * inch
+                img.drawHeight = 2.25 * inch
+                image_table_data.append([img])
+
+        image_table = Table(
+            [image_table_data[:2], image_table_data[2:]],
+            colWidths=[2.5 * inch, 2.5 * inch],
+            rowHeights=[2.5 * inch, 2.5 * inch]
         )
-    )
+        image_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black)
+                ]
+            )
+        )
 
-    content.append(image_table)
+        content.append(image_table)
 
 
 
@@ -334,9 +337,5 @@ def print_ticket(data,stype,final):
     else:
         for x in range(int(NCPF1)):
             win32api.ShellExecute(0, "print", "Ticket.pdf", f'"{printer_name}"', ".", 0)
-
-
-
-
 
 

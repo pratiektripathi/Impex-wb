@@ -9,7 +9,7 @@ import requests
 import numpy as np
 from io import BytesIO
 import tkinter as tk
-
+from requests.auth import HTTPDigestAuth
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
@@ -37,7 +37,7 @@ except:
 
 
 
-
+F5manual=0
 xcom=[]
 
 try:
@@ -58,7 +58,11 @@ except:
           0,
           0,
            "res/nocam.jpg",
+           "admin",
+           "admin123",
             "res/nocam.jpg",
+            "admin",
+            "admin123",
             0]
 
 CN=xcom[1]
@@ -77,8 +81,12 @@ WDL=int(xcom[12])
 rshift=int(xcom[13])
 camEN=int(xcom[14])
 IPcam1=xcom[15]
-IPcam2=xcom[16]
-picEN=xcom[17]
+cam1u1=xcom[16]
+cam1p1=xcom[17]
+IPcam2=xcom[18]
+cam2u2=xcom[19]
+cam2p2=xcom[20]
+picEN=int(xcom[21])
 
 
 
@@ -394,6 +402,19 @@ class CamPage(tk.Toplevel):
 
         frame2.pack(fill='both',expand=True)
 
+
+
+        rtsp_url1=f"rtsp://{cam1u1}:{cam1p1}@{IPcam1}:554/cam/realmonitor?channel=1&subtype=1"
+        print(rtsp_url1)
+        self.rtsp_url1 = rtsp_url1
+        self.cap1 = cv2.VideoCapture(rtsp_url1)
+
+        
+        rtsp_url2=f"rtsp://{cam2u2}:{cam2p2}@{IPcam2}:554/cam/realmonitor?channel=1&subtype=1"
+        print(rtsp_url2)
+        self.rtsp_url2 = rtsp_url2
+        self.cap2 = cv2.VideoCapture(rtsp_url2)
+
         # Call the function to download and display the IP camera image
         self.download_and_display_camera_image1()
         self.download_and_display_camera_image2()
@@ -403,39 +424,44 @@ class CamPage(tk.Toplevel):
 
     def download_and_display_camera_image1(self):
         try:
-            image_url1 = IPcam1
-            response1 = requests.get(image_url1, stream=True)
-           
-
-            if response1.status_code == 200:
-                image_data = BytesIO(response1.content)
-                image_array = np.asarray(bytearray(image_data.read()), dtype=np.uint8)
-                image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-
-                # Resize the image to your desired dimensions
-                target_width = 150 # Adjust this width as needed
-                target_height = 90  # Adjust this height as needed
-                resized_image = cv2.resize(image, (target_width, target_height))
-
-                pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
-                tk_image = ImageTk.PhotoImage(pil_image)
-
-                # Update the image in the camera label
-                self.camera_label1.configure(image=tk_image)
-                self.camera_label1.image = tk_image  # Keep a reference to the image
-
-                self.camera_label1.after(200, self.download_and_display_camera_image1)
-
-
-            else:
-                default_image = Image.open("res/nocam.jpg")
-                tk_default_image = ImageTk.PhotoImage(default_image)
-
-                # Update the image in the camera label with the default image
-                self.camera_label1.configure(image=tk_default_image)
-                self.camera_label1.image = tk_default_image # Keep a reference to the image
-        
             
+            if not self.cap1.isOpened():
+                print("Error: Unable to open RTSP stream")
+                exit()
+
+            frame_skip = 1  # Skip every 2 frames
+            frame_counter = 0
+            if frame_counter % frame_skip == 0:
+                ret, frame = self.cap1.read()
+                if ret:
+                    # Convert the frame to RGB (Tkinter needs RGB images)
+
+    
+                    target_width = 150 # Adjust this width as needed
+                    target_height = 90  # Adjust this height as needed
+                    resized_image = cv2.resize(frame, (target_width, target_height))
+
+                    pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+                    tk_image = ImageTk.PhotoImage(pil_image)
+
+                    # Update the image in the camera label
+                    self.camera_label1.configure(image=tk_image)
+                    self.camera_label1.image = tk_image  # Keep a reference to the image
+
+                    self.camera_label1.after(20, self.download_and_display_camera_image1)
+
+
+                else:
+                    default_image = Image.open("res/nocam.jpg")
+                    tk_default_image = ImageTk.PhotoImage(default_image)
+
+                    # Update the image in the camera label with the default image
+                    self.camera_label1.configure(image=tk_default_image)
+                    self.camera_label1.image = tk_default_image # Keep a reference to the image
+            
+                
+            frame_counter+=1
+
 
         except:
             default_image = Image.open("res/nocam.jpg")
@@ -448,40 +474,43 @@ class CamPage(tk.Toplevel):
 
        
     def download_and_display_camera_image2(self):
-        try:
-            image_url2 = IPcam2
-            response2 = requests.get(image_url2, stream=True)
-           
+        try:    
 
-            if response2.status_code == 200:
-                image_data = BytesIO(response2.content)
-                image_array = np.asarray(bytearray(image_data.read()), dtype=np.uint8)
-                image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+            if not self.cap2.isOpened():
+                print("Error: Unable to open RTSP stream")
+                exit()
+            frame_skip = 1  # Skip every 2 frames
+            frame_counter = 0
+            if frame_counter % frame_skip == 0:
 
-                # Resize the image to your desired dimensions
-                target_width = 150 # Adjust this width as needed
-                target_height = 90  # Adjust this height as needed
-                resized_image = cv2.resize(image, (target_width, target_height))
+                ret, frame = self.cap2.read()
+                if ret:
+                    # Convert the frame to RGB (Tkinter needs RGB images)
 
-                pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
-                tk_image = ImageTk.PhotoImage(pil_image)
+                    # Resize the image to your desired dimensions
+                    target_width = 150 # Adjust this width as needed
+                    target_height = 90  # Adjust this height as needed
+                    resized_image = cv2.resize(frame, (target_width, target_height))
 
-                # Update the image in the camera label
-                self.camera_label2.configure(image=tk_image)
-                self.camera_label2.image = tk_image  # Keep a reference to the image
+                    pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+                    tk_image = ImageTk.PhotoImage(pil_image)
 
-                self.camera_label2.after(200, self.download_and_display_camera_image2)
+                    # Update the image in the camera label
+                    self.camera_label2.configure(image=tk_image)
+                    self.camera_label2.image = tk_image  # Keep a reference to the image
+
+                    self.camera_label2.after(20, self.download_and_display_camera_image2)
 
 
-            else:
-                default_image = Image.open("res/nocam.jpg")
-                tk_default_image = ImageTk.PhotoImage(default_image)
+                else:
+                    default_image = Image.open("res/nocam.jpg")
+                    tk_default_image = ImageTk.PhotoImage(default_image)
 
-                # Update the image in the camera label with the default image
-                self.camera_label2.configure(image=tk_default_image)
-                self.camera_label2.image = tk_default_image # Keep a reference to the image
-        
+                    # Update the image in the camera label with the default image
+                    self.camera_label2.configure(image=tk_default_image)
+                    self.camera_label2.image = tk_default_image # Keep a reference to the image
             
+            frame_counter+=1
 
         except:
             default_image = Image.open("res/nocam.jpg")
@@ -503,12 +532,6 @@ class CamPage(tk.Toplevel):
         self.destroy()
         # Recreate a new CamPage instance in the parent
         parent.create_cam_page()
-
-
-
-
-
-
 
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -1038,11 +1061,11 @@ class PageOne(tk.Frame):
         GrossWeight=self.field_8.get()
         TareWeight=self.field_9.get()
         Final=self.field_7.get()
-        pic_handler = PicHandler()
-        url1 = IPcam1
-        filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
-        url2 = IPcam2
-        filename2 = f"camera/back/{self.field_1.get()}_1.jpg"
+        if picEN == True:
+            url1 = IPcam1
+            filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
+            url2 = IPcam2
+            filename2 = f"camera/back/{self.field_1.get()}_1.jpg"
 
 
 
@@ -1062,9 +1085,13 @@ class PageOne(tk.Frame):
                   GrossWeightTime,TareWeightDate,TareWeightTime,Final,"","",""]
 
         try:
+            
+        
+            if picEN == True:
+                pic_handler = PicHandler()
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(pic_handler.download_images(url1,cam1u1,cam1p1, filename1, url2,cam2u2,cam2p2, filename2))
             db.SaveWbData(savedata)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -1515,7 +1542,7 @@ class PageTwo(tk.Frame):
         oldTWD=pd[10]
         oldTWT=pd[11]
         GT=pd[12]
-        pic_handler = PicHandler()
+        
         url1 = IPcam1
         filename1 = f"camera/front/{self.field_1.get()}_2.jpg"
         url2 = IPcam2
@@ -1564,9 +1591,11 @@ class PageTwo(tk.Frame):
                       GrossWeightTime,TareWeightDate,TareWeightTime,Final,NetWeight,NetWeightDate,NetWeightTime,pd[0]]
 
             try:
+                if picEN == True:
+                    pic_handler = PicHandler()
+                    loop = asyncio.get_event_loop()
+                    loop.run_until_complete(pic_handler.download_images(url1,cam1u1,cam1p1, filename1, url2,cam2u2,cam2p2, filename2))
                 
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
                 db.UpdateWbData(savedata)
                 tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
                 if pp=="print":
@@ -1949,7 +1978,7 @@ class PageFive(tk.Frame):
         NetWeight=self.field_10.get()
         NetWeightDate=self.field_01.get()
         NetWeightTime=self.field_02.get()
-        pic_handler = PicHandler()
+        
         url1 = IPcam1
         filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
         url2 = IPcam2
@@ -1963,10 +1992,12 @@ class PageFive(tk.Frame):
 
 
         try:
-
+            
+            if picEN==True:
+                pic_handler = PicHandler()
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(pic_handler.download_images(url1,cam1u1,cam1p1, filename1, url2,cam2u2,cam2p2, filename2))
             db.SaveWbData(savedata)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -2249,7 +2280,7 @@ class PageManual(tk.Frame):
 
     def FM(self):
         try:
-            if (self.controller.hero.get()=="<class '__main__.StartPage'>"):
+            if (self.controller.hero.get()=="<class '__main__.StartPage'>") and F5manual==1:
                 self.controller.show_frame(PageManual)
                 self.clr()
                 self.field_2.focus_set()
@@ -2345,7 +2376,6 @@ class PageManual(tk.Frame):
         NetWeight=self.field_10.get()
         NetWeightDate=self.field_01.get()
         NetWeightTime=self.field_02.get()
-        pic_handler = PicHandler()
         url1 = IPcam1
         filename1 = f"camera/front/{self.field_1.get()}_1.jpg"
         url2 = IPcam2
@@ -2360,11 +2390,13 @@ class PageManual(tk.Frame):
 
 
         try:
-            db.SaveWbData(savedata)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(pic_handler.download_images(url1, filename1, url2, filename2))
             
-
+            if picEN==True:
+                pic_handler = PicHandler()
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(pic_handler.download_images(url1,cam1u1,cam1p1, filename1, url2,cam2u2,cam2p2, filename2))
+            
+            db.SaveWbData(savedata)
             tk.messagebox.showinfo("DONE",f"TICKET No {self.field1.get()} SAVED SUCCESSFULLY")
             if pp=="print":
                 savedata.insert(0, self.field_1.get())
@@ -3089,19 +3121,52 @@ class MultiTabWindow(tk.Toplevel):
 
         Label1_font = ("Arial", 10)
         field_font = ("Arial", 10)
-        self.field_cam1 = tk.Label(frame2, text="Camera 1:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_cam1 = tk.Label(frame2, text="Camera 1 IP:", fg="black", bg='#ADD8E0', font=Label1_font)
         self.field_cam1.grid(row=0, column=0, padx=0, pady=0, sticky='w')
         self.fieldcam1 = tk.StringVar()
         self.feild_cam1_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldcam1, width=50, font=field_font, justify='center', exportselection=0)
-        self.feild_cam1_value.bind("<Return>", lambda e: self.feild_cam2_value.focus_set())
+        self.feild_cam1_value.bind("<Return>", lambda e: self.feild_u1_value.focus_set())
         self.feild_cam1_value.grid(row=0, column=1, padx=1, pady=0, columnspan=2)
+ 
+ 
+        self.field_u1 = tk.Label(frame2, text="Camera 1 User:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_u1.grid(row=1, column=0, padx=0, pady=0, sticky='w')
+        self.fieldu1 = tk.StringVar()
+        self.feild_u1_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldu1, width=20, font=field_font, justify='center', exportselection=0)
+        self.feild_u1_value.bind("<Return>", lambda e: self.feild_p1_value.focus_set())
+        self.feild_u1_value.grid(row=1, column=1, padx=1, pady=0, columnspan=2)
 
-        self.field_cam2 = tk.Label(frame2, text="Camera 2 :", fg="black", bg='#ADD8E0', font=Label1_font)
-        self.field_cam2.grid(row=1, column=0, padx=0, pady=0, sticky='w')
+        self.field_p1 = tk.Label(frame2, text="Camera 1 Pass:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_p1.grid(row=2, column=0, padx=0, pady=0, sticky='w')
+        self.fieldp1 = tk.StringVar()
+        self.feild_p1_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldp1, width=20, font=field_font, justify='center', exportselection=0)
+        self.feild_p1_value.bind("<Return>", lambda e: self.feild_cam2_value.focus_set())
+        self.feild_p1_value.grid(row=2, column=1, padx=1, pady=0, columnspan=2)
+
+
+
+
+        self.field_cam2 = tk.Label(frame2, text="Camera 2 IP:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_cam2.grid(row=3, column=0, padx=0, pady=0, sticky='w')
         self.fieldcam2 = tk.StringVar()
         self.feild_cam2_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldcam2, width=50, font=field_font, justify='center', exportselection=0)
-        self.feild_cam2_value.bind("<Return>", lambda e: self.feild_add2_value.focus_set())
-        self.feild_cam2_value.grid(row=1, column=1, padx=1, pady=0, columnspan=2)
+        self.feild_cam2_value.bind("<Return>", lambda e: self.feild_u2_value.focus_set())
+        self.feild_cam2_value.grid(row=3, column=1, padx=1, pady=0, columnspan=2)
+
+
+        self.field_u2 = tk.Label(frame2, text="Camera 2 User:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_u2.grid(row=4, column=0, padx=0, pady=0, sticky='w')
+        self.fieldu2 = tk.StringVar()
+        self.feild_u2_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldu2, width=20, font=field_font, justify='center', exportselection=0)
+        self.feild_u2_value.bind("<Return>", lambda e: self.feild_p2_value.focus_set())
+        self.feild_u2_value.grid(row=4, column=1, padx=1, pady=0, columnspan=2)
+
+        self.field_p2 = tk.Label(frame2, text="Camera 2 Pass:", fg="black", bg='#ADD8E0', font=Label1_font)
+        self.field_p2.grid(row=5, column=0, padx=0, pady=0, sticky='w')
+        self.fieldp2 = tk.StringVar()
+        self.feild_p2_value = tk.Entry(frame2, fg="black", bg='white', textvariable=self.fieldp2, width=20, font=field_font, justify='center', exportselection=0)
+        self.feild_p2_value.bind("<Return>", lambda e: self.feild_add2_value.focus_set())
+        self.feild_p2_value.grid(row=5, column=1, padx=1, pady=0, columnspan=2)
 
 
 
@@ -3156,10 +3221,14 @@ class MultiTabWindow(tk.Toplevel):
         RShift=self.field4.get()
         camEN=self.camera_enabled.get()
         IPcam1=self.fieldcam1.get()
+        u1 = self.fieldu1.get()
+        p1 = self.fieldp1.get()
         IPcam2=self.fieldcam2.get()
+        u2 = self.fieldu2.get()
+        p2 = self.fieldp2.get()
         picEN=self.pic_enabled.get()
 
-        mydata=[CName,Add1,Add2,PType,SWPrint,NCopyF1,NCopyF2,DPrint,CPort,BRate,EString,WDigits,RShift,camEN,IPcam1,IPcam2,picEN]
+        mydata=[CName,Add1,Add2,PType,SWPrint,NCopyF1,NCopyF2,DPrint,CPort,BRate,EString,WDigits,RShift,camEN,IPcam1,u1,p1,IPcam2,u2,p2,picEN]
         db.Update_Seting(mydata)
         try:
             db.Update_Seting(mydata)
@@ -3184,7 +3253,11 @@ class MultiTabWindow(tk.Toplevel):
         self.field4.set(str(rshift))
         self.camera_enabled.set(camEN)
         self.fieldcam1.set(IPcam1)
+        self.fieldu1.set(cam1u1)
+        self.fieldp1.set(cam1p1)
         self.fieldcam2.set(IPcam2)
+        self.fieldu2.set(cam2u2)
+        self.fieldp2.set(cam2p2)
         self.pic_enabled.set(picEN)
 
 
@@ -3503,6 +3576,12 @@ class PassWindow(tk.Toplevel):
             self.delall()
             self.close()
 
+        elif str(self.field1.get())=="226700":
+            global F5manual
+            F5manual = 1
+            tk.messagebox.showinfo("Manual Activated")
+            self.close()
+
 
         else:
             self.field1.set("")
@@ -3514,6 +3593,7 @@ class PassWindow(tk.Toplevel):
                 MsgBox = tk.messagebox.askquestion ('Are You Sure','Do you want to Delete all record?',icon = 'question')
                 if MsgBox == 'yes':
                     rec=db.reset()
+                    
                     self.close()
                     MsgBox = tk.messagebox.showinfo("Done", str(rec)+" Records Deleted Successfully")
                 else:

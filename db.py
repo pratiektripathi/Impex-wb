@@ -138,7 +138,11 @@ def Update_Seting(data):
 	                                RShift = ?,
                                     camEN = ?,
                                     IPcam1 = ?,
+                                    u1 = ?,
+                                    p1 = ?,
                                     IPcam2 = ?,
+                                    u2 = ?,
+                                    p2 = ?,
                                     picEN = ?
 	                                WHERE id = '1'""",data)
     con.commit()
