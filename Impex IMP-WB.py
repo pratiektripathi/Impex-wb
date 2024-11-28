@@ -5,22 +5,17 @@ import multiprocessing
 import queue as q
 import subprocess
 import cv2
-import requests
-import numpy as np
-from io import BytesIO
 import tkinter as tk
-from requests.auth import HTTPDigestAuth
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
 import serial
-
 from PIL import Image, ImageTk
 import db
 from tkcalendar import DateEntry
 from picHandler import PicHandler
 import report2
-
+import threading
 import zebrapl
 import pandas as pd
 xuid=0
@@ -372,6 +367,7 @@ class MainApp(tk.Tk):
 
 
 
+
 class CamPage(tk.Toplevel):
     def __init__(self, parent, **kwargs):
         tk.Toplevel.__init__(self, parent, **kwargs)
@@ -380,158 +376,118 @@ class CamPage(tk.Toplevel):
         self.geometry("+500+0")
         self.iconbitmap('myicon.ico')
         self.focus_set()
-        self.title("IP camera")
+        self.title("IP Camera")
 
+        self.stop_event = threading.Event()
+
+        # Main frame
         frame2 = tk.Frame(self, bg='white')
-
         Label_font = Font(family="Arquitecta", size=14)
 
-
-
-        cam_frame1 = tk.LabelFrame(frame2, text="Front",  bg='white', font=Label_font)
-        cam_frame1.grid(row=0, column=0,padx=0, ipady=0)
+        # Front Camera Frame
+        cam_frame1 = tk.LabelFrame(frame2, text="Front", bg='white', font=Label_font)
+        cam_frame1.grid(row=0, column=0, padx=0, ipady=0)
         self.camera_label1 = tk.Label(cam_frame1)
         self.camera_label1.grid(row=0, column=0, padx=0, pady=0, sticky='w')
 
-        cam_frame2 = tk.LabelFrame(frame2, text="back",  bg='white', font=Label_font)
-        cam_frame2.grid(row=0, column=1,padx=0, ipady=0)
+        # Back Camera Frame
+        cam_frame2 = tk.LabelFrame(frame2, text="Back", bg='white', font=Label_font)
+        cam_frame2.grid(row=0, column=1, padx=0, ipady=0)
         self.camera_label2 = tk.Label(cam_frame2)
         self.camera_label2.grid(row=0, column=0, padx=0, pady=0, sticky='w')
 
+        frame2.pack(fill='both', expand=True)
 
-
-        frame2.pack(fill='both',expand=True)
-
-
-
-        rtsp_url1=f"rtsp://{cam1u1}:{cam1p1}@{IPcam1}:554/cam/realmonitor?channel=1&subtype=1"
-        print(rtsp_url1)
-        self.rtsp_url1 = rtsp_url1
-        self.cap1 = cv2.VideoCapture(rtsp_url1)
-
-        
-        rtsp_url2=f"rtsp://{cam2u2}:{cam2p2}@{IPcam2}:554/cam/realmonitor?channel=1&subtype=1"
-        print(rtsp_url2)
-        self.rtsp_url2 = rtsp_url2
-        self.cap2 = cv2.VideoCapture(rtsp_url2)
-
-        # Call the function to download and display the IP camera image
-        self.download_and_display_camera_image1()
-        self.download_and_display_camera_image2()
+        default_image = Image.open("res/loading.jpg")
+        tk_default_image = ImageTk.PhotoImage(default_image)
+        self.camera_label1.configure(image=tk_default_image)
+        self.camera_label1.image = tk_default_image
+        self.camera_label2.configure(image=tk_default_image)
+        self.camera_label2.image = tk_default_image
 
 
 
+        # RTSP URLs
+        self.rtsp_url1 = f"rtsp://{cam1u1}:{cam1p1}@{IPcam1}:554/cam/realmonitor?channel=1&subtype=1"
+        self.rtsp_url2 = f"rtsp://{cam2u2}:{cam2p2}@{IPcam2}:554/cam/realmonitor?channel=1&subtype=1"
 
-    def download_and_display_camera_image1(self):
+        # Initialize VideoCapture objects
+
+
+        # Queues for frame updates
+        self.queue1 = q.Queue()
+        self.queue2 = q.Queue()
+
+        # Threads for fetching frames
+        self.thread1 = threading.Thread(target=self.fetch_frames, args=(self.rtsp_url1, self.queue1))
+        self.thread2 = threading.Thread(target=self.fetch_frames, args=(self.rtsp_url2, self.queue2))
+
+        # Mark threads as daemon
+        self.thread1.daemon = True
+        self.thread2.daemon = True
+
+        # Start threads
+        self.thread1.start()
+        self.thread2.start()
+
+        # Start updating labels
+        self.update_label(self.queue1, self.camera_label1, 150, 90)
+        self.update_label(self.queue2, self.camera_label2, 150, 90)
+
+        # Handle window close event
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def fetch_frames(self, rtsp_url, frame_queue):
+
+        cap = cv2.VideoCapture(rtsp_url)
+       
+        """Fetch frames from the RTSP stream and put them in a queue."""
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                frame_queue.put(frame)
+            else:
+                # If the stream fails, put `None` in the queue
+                frame_queue.put(None)
+                break
+
+    def update_label(self, frame_queue, label, width, height):
+        """Update the Tkinter label with frames from the queue."""
         try:
-            
-            if not self.cap1.isOpened():
-                print("Error: Unable to open RTSP stream")
-                exit()
+            if not frame_queue.empty() :
+                frame = frame_queue.get()
+                if frame is not None:
+                    # Resize and convert the frame to a format suitable for Tkinter
+                    resized_frame = cv2.resize(frame, (width, height))
+                    pil_image = Image.fromarray(cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB))
+                    tk_image = ImageTk.PhotoImage(pil_image)
 
-            frame_skip = 1  # Skip every 2 frames
-            frame_counter = 0
-            if frame_counter % frame_skip == 0:
-                ret, frame = self.cap1.read()
-                if ret:
-                    # Convert the frame to RGB (Tkinter needs RGB images)
+                    # Update the label with the new image
+                    label.configure(image=tk_image)
+                    label.image = tk_image
+                else:
+                    # Display default "no camera" image on failure
+                    default_image = Image.open("res/nocam.jpg")
+                    tk_default_image = ImageTk.PhotoImage(default_image)
+                    label.configure(image=tk_default_image)
+                    label.image = tk_default_image
+        except Exception as e:
+            print(f"Error updating label: {e}")
+
+        # Schedule the next frame update
+        label.after(20, self.update_label, frame_queue, label, width, height)
+
+    def on_close(self):
+        """Handle cleanup when the window is closed."""
+        parent = self.master
+        self.destroy()
+        parent.create_cam_page()
 
     
-                    target_width = 150 # Adjust this width as needed
-                    target_height = 90  # Adjust this height as needed
-                    resized_image = cv2.resize(frame, (target_width, target_height))
-
-                    pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
-                    tk_image = ImageTk.PhotoImage(pil_image)
-
-                    # Update the image in the camera label
-                    self.camera_label1.configure(image=tk_image)
-                    self.camera_label1.image = tk_image  # Keep a reference to the image
-
-                    self.camera_label1.after(20, self.download_and_display_camera_image1)
-
-
-                else:
-                    default_image = Image.open("res/nocam.jpg")
-                    tk_default_image = ImageTk.PhotoImage(default_image)
-
-                    # Update the image in the camera label with the default image
-                    self.camera_label1.configure(image=tk_default_image)
-                    self.camera_label1.image = tk_default_image # Keep a reference to the image
-            
-                
-            frame_counter+=1
-
-
-        except:
-            default_image = Image.open("res/nocam.jpg")
-            tk_default_image = ImageTk.PhotoImage(default_image)
-
-            # Update the image in the camera label with the default image
-            self.camera_label1.configure(image=tk_default_image)
-            self.camera_label1.image = tk_default_image  # Keep a reference to the image
-
-
-       
-    def download_and_display_camera_image2(self):
-        try:    
-
-            if not self.cap2.isOpened():
-                print("Error: Unable to open RTSP stream")
-                exit()
-            frame_skip = 1  # Skip every 2 frames
-            frame_counter = 0
-            if frame_counter % frame_skip == 0:
-
-                ret, frame = self.cap2.read()
-                if ret:
-                    # Convert the frame to RGB (Tkinter needs RGB images)
-
-                    # Resize the image to your desired dimensions
-                    target_width = 150 # Adjust this width as needed
-                    target_height = 90  # Adjust this height as needed
-                    resized_image = cv2.resize(frame, (target_width, target_height))
-
-                    pil_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
-                    tk_image = ImageTk.PhotoImage(pil_image)
-
-                    # Update the image in the camera label
-                    self.camera_label2.configure(image=tk_image)
-                    self.camera_label2.image = tk_image  # Keep a reference to the image
-
-                    self.camera_label2.after(20, self.download_and_display_camera_image2)
-
-
-                else:
-                    default_image = Image.open("res/nocam.jpg")
-                    tk_default_image = ImageTk.PhotoImage(default_image)
-
-                    # Update the image in the camera label with the default image
-                    self.camera_label2.configure(image=tk_default_image)
-                    self.camera_label2.image = tk_default_image # Keep a reference to the image
-            
-            frame_counter+=1
-
-        except:
-            default_image = Image.open("res/nocam.jpg")
-            tk_default_image = ImageTk.PhotoImage(default_image)
-
-            # Update the image in the camera label with the default image
-            self.camera_label2.configure(image=tk_default_image)
-            self.camera_label2.image = tk_default_image  # Keep a reference to the image
-
-
-        self.protocol("WM_DELETE_WINDOW", self.recreate_cam_page)
 
 
 
-    def recreate_cam_page(self):
-        # Destroy the current CamPage instance
-        parent = self.master
-        # Destroy the current CamPage instance
-        self.destroy()
-        # Recreate a new CamPage instance in the parent
-        parent.create_cam_page()
+
 
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
